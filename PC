@@ -1,0 +1,173 @@
+//https://github.com/joselyngd/FinalProject/PC
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class PlayerController : MonoBehaviour
+{
+
+    private Rigidbody2D rb2d;
+    private bool facingRight = true;
+
+    public float speed;
+    public float jumpforce;
+
+    //ground check
+    private bool isOnGround;
+    public Transform groundcheck;
+    public float checkRadius;
+    public LayerMask allGround;
+
+    private float jumpTimeCounter;
+    public float jumpTime;
+    private bool isJumping;
+
+    private int count;              //Integer to store the number of pickups collected so far.
+
+    //This handles an internal timer
+    private float timer;
+    private int wholetime;
+
+    public Text CollectText;
+    public Text endText;
+
+    //audio stuff
+
+
+
+
+    // Use this for initialization
+    void Start()
+    {
+        rb2d = GetComponent<Rigidbody2D>();
+
+        count = 0;
+
+        //Initialze winText to a blank string since we haven't won yet at beginning.
+        //  winText.text = "";
+        endText.text = "";
+
+        //Call our SetCountText function which will update the text with the current value for count.
+        SetCountText();
+    }
+
+    void Update()
+    {
+            if (Input.GetKey("escape"))
+        { 
+                Application.Quit();
+        }
+    }
+
+
+    // Update is called once per frame
+    void FixedUpdate()
+    {
+
+        float moveHorizontal = Input.GetAxis("Horizontal");
+
+        Vector2 movement = new Vector2(moveHorizontal, 0);
+
+        rb2d.AddForce(movement * speed);
+
+        rb2d.velocity = new Vector2(moveHorizontal * speed, rb2d.velocity.y);
+
+        isOnGround = Physics2D.OverlapCircle(groundcheck.position, checkRadius, allGround);
+
+        Debug.Log(isOnGround);
+
+        timer = timer + Time.deltaTime;
+        if (timer >= 10)
+        {
+            endText.text = "Need more practice?";
+            StartCoroutine(ByeAfterDelay(2));
+
+        }
+
+
+        //stuff I added to flip my character
+        if (facingRight == false && moveHorizontal > 0)
+        {
+            Flip();
+        }
+        else if (facingRight == true && moveHorizontal < 0)
+        {
+            Flip();
+        }
+
+    }
+
+    void Flip()
+    {
+        facingRight = !facingRight;
+        Vector2 Scaler = transform.localScale;
+        Scaler.x = Scaler.x * -1;
+        transform.localScale = Scaler;
+    }
+
+    private void OnCollisionStay2D(Collision2D collision)
+    {
+        if (collision.collider.tag == "Ground" && isOnGround)
+        {
+
+
+            if (Input.GetKey(KeyCode.Space))
+            {
+                rb2d.AddForce(new Vector2(0, jumpforce), ForceMode2D.Impulse);
+                rb2d.velocity = Vector2.up * jumpforce;
+
+
+                // Audio stuff
+
+
+
+            }
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        //Check the provided Collider2D parameter other to see if it is tagged "PickUp", if it is...
+        if (other.gameObject.CompareTag("Coin"))
+        {
+            other.gameObject.SetActive(false);
+
+            //Add one to the current value of our count variable.
+            count = count + 2;
+
+            // add a point to the game
+            GameLoader.AddScore(2);
+
+            //Update the currently displayed count by calling the SetCountText function.
+            SetCountText();
+        }
+    }
+
+    void SetCountText()
+    {
+        //Set the text property of our our countText object to "Count: " followed by the number stored in our count variable.
+        //  countText.text = "Count: " + count.ToString();
+
+        //Check if we've collected all 12 pickups. If we have...
+        if (count >= 10)
+        {
+            //... then set the text property of our winText object to "You win!"
+            //  winText.text = "Nice!";
+            endText.text = "NICE!";
+            StartCoroutine(ByeAfterDelay(2));
+
+
+
+        }
+    }
+
+    IEnumerator ByeAfterDelay(float time)
+    {
+        yield return new WaitForSeconds(time);
+
+        // Code to execute after the delay
+        GameLoader.gameOn = false;
+    }
+}
